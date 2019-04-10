@@ -7,6 +7,8 @@ from .loss_functions import reconstruction_loss
 from .loss_functions import log_prior
 from .vae import variational_lowerbound
 
+from .vae import q1_star1
+
 from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets('MNIST')
 
@@ -15,7 +17,7 @@ from scipy.optimize import minimize
 
 
 #q1_star = tf.placeholder(tf.float32, shape=[])
-q1_star1 = tf.placeholder(tf.float32, shape=[])#we need to pass 1.0-q0_star, because of float32 and numerical issues
+q1_star1_iwae = tf.placeholder(tf.float32, shape=[])#we need to pass 1.0-q0_star, because of float32 and numerical issues
 #for qIWAE q is very close to one and gets passed through the placeholder as 1.0, which gives nan in the q-loss
 
 q0_star = 1.0-1e-6
@@ -181,12 +183,12 @@ def iwae(x, encoder, decoder, num_samples, batch_size, alpha=0.0):
     logF_reshaped = tf.reshape(logF,shape=[num_samples,batch_size]) #will have dimensions [num_samples,batch_size]
 
     #T1 = (1.0 - q1_star) * tf.reduce_logsumexp(logF_reshaped,axis=0)
-    T1 = (q1_star1) * tf.reduce_logsumexp(logF_reshaped, axis=0)
+    T1 = (q1_star1_iwae) * tf.reduce_logsumexp(logF_reshaped, axis=0)
 
     T2 = tf.exp(T1)
 
     #qIWAE_loss = tf.div(T2 - 1.0,1.0 - q1_star)
-    qIWAE_loss = tf.div(T2 - 1.0, q1_star1)
+    qIWAE_loss = tf.div(T2 - 1.0, q1_star1_iwae)
     mean_qIWAE_loss = tf.reduce_mean(qIWAE_loss)  # take the mean over the batch size
 
     CUBO = 0.5 * (-tf.log(float(num_samples)) + tf.reduce_logsumexp(2.0 * logF_reshaped, axis=0))  # standard CUBO, n=2
@@ -204,12 +206,12 @@ def qiwae(num_samples, batch_size, logF):
     logF_reshaped = tf.reshape(logF, shape=[num_samples, batch_size])  # will have dimensions [num_samples,batch_size]
 
     # T1 = (1.0 - q1_star) * tf.reduce_logsumexp(logF_reshaped,axis=0)
-    T1 = (q1_star1) * tf.reduce_logsumexp(logF_reshaped, axis=0)
+    T1 = (q1_star1_iwae) * tf.reduce_logsumexp(logF_reshaped, axis=0)
 
     T2 = tf.exp(T1)
 
     # qIWAE_loss = tf.div(T2 - 1.0,1.0 - q1_star)
-    qIWAE_loss = tf.div(T2 - 1.0, q1_star1)
+    qIWAE_loss = tf.div(T2 - 1.0, q1_star1_iwae)
     mean_qIWAE_loss = tf.reduce_mean(qIWAE_loss)  # take the mean over the batch size
 
     qLowerbound = mean_qIWAE_loss
@@ -235,7 +237,7 @@ def make_functions_vae(models, input_size, num_samples, batch_size, alpha=0.0):
 
         cost, logF_np, mqiwael_np, mcubo, tl = sess.run((lowerbound, logF, mean_qIWAE_loss, mean_CUBO, tmp_l),
                              feed_dict={input: X,
-                                        q1_star1: 1.0-q0_star,
+                                        q1_star1_iwae: 1.0-q0_star,
                                         learning_rate_ph: learning_rate})
         #pdb.set_trace()
         Nq = logF_np.shape[0]
@@ -253,14 +255,14 @@ def make_functions_vae(models, input_size, num_samples, batch_size, alpha=0.0):
         mqiwael = compute_qIWAE(q0_star,logF_np_reshaped)
 
         mqiwael_after = sess.run(qLowerbound,
-                                 feed_dict={input: X, q1_star1: 1.0 - q0_star, learning_rate_ph: learning_rate})
+                                 feed_dict={input: X, q1_star1_iwae: 1.0 - q0_star, learning_rate_ph: learning_rate})
         #pdb.set_trace()
 
-        opt = sess.run(optimizer, feed_dict={input: X, q1_star1: 1.0 - q0_star, learning_rate_ph: learning_rate})
+        opt = sess.run(optimizer, feed_dict={input: X, q1_star1_iwae: 1.0 - q0_star, learning_rate_ph: learning_rate})
 
         miwae, cost_q, logF_np, mcubo = sess.run((lowerbound, qLowerbound, logF, mean_CUBO),
                              feed_dict={input: X,
-                                        q1_star1: 1.0-q0_star,
+                                        q1_star1_iwae: 1.0-q0_star,
                                         learning_rate_ph: learning_rate})
 
         #pdb.set_trace()
@@ -367,7 +369,7 @@ def init_optimizer(models, input_size, batch_size = 100, num_samples = 1, **kwar
         
         meanIWAE_np, logF_np, \
         mean_qIWAE_loss_np, mean_CUBO_np, tmp_l_np = sess.run(iwae(X, encoder, decoder, num_samples, batch_size, alpha),
-                                                              feed_dict={q1_star1: 1.0-q0_star})
+                                                              feed_dict={q1_star1_iwae: 1.0-q0_star})
 
         Nq = logF_np.shape[0]
 
@@ -386,10 +388,10 @@ def init_optimizer(models, input_size, batch_size = 100, num_samples = 1, **kwar
         #mqiwae_np = compute_qIWAE(q0_star,logF_np_reshaped)
 
         logF_placeholder = tf.placeholder(tf.float32, [num_samples * batch_size])
-        mqiwae_after_np = sess.run(qiwae(num_samples, batch_size, logF_placeholder), feed_dict={logF_placeholder: logF_np, q1_star1: 1.0-q0_star})
+        mqiwae_after_np = sess.run(qiwae(num_samples, batch_size, logF_placeholder), feed_dict={logF_placeholder: logF_np, q1_star1_iwae: 1.0-q0_star})
         
-        log_px_IS_np = sess.run(variational_lowerbound(X, encoder, decoder, num_samples, X.shape[0], 0.0))
-
+        log_px_IS_np, logF_np, mean_qELBO_loss_np, mean_CUBO_np =  sess.run(variational_lowerbound(X, encoder, decoder, num_samples, X.shape[0], 0.0), feed_dict={q1_star1: 1.0-q0_star})
+        #log_px_IS_np = 0.0
         miwae = 0.0#meanIWAE_np
         mqiwae = mqiwae_after_np#mean_qIWAE_loss_q_np
         cost_q = log_px_IS_np
