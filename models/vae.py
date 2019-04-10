@@ -1,6 +1,3 @@
-#Copyright Septimia Sarbu 2019
-#This is a modified version of the code downloaded from https://github.com/YingzhenLi/vae_renyi_divergence
-
 import numpy as np
 import tensorflow as tf
 import time
@@ -9,8 +6,6 @@ from network.network import construct_network
 from .loss_functions import reconstruction_loss
 from .loss_functions import log_prior
 
-########################################################################################################################
-#My code
 from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets('MNIST')
 
@@ -64,9 +59,6 @@ def root_qELBO_no_exp(var, ratio_np1, eq_term):
 
     return (LHS_term - F2)**2
 
-#END My code
-########################################################################################################################
-
 def variational_lowerbound(x, encoder, decoder, num_samples, batch_size, \
         alpha = 1.0, backward_pass = 'full'):
     """
@@ -95,10 +87,7 @@ def variational_lowerbound(x, encoder, decoder, num_samples, batch_size, \
         logpxz = logpxz + logp
 
     logpz = log_prior(output, encoder.S_layers[l].get_prob_type())
-    logF = logpz + logpxz - logqzx
-
-    ########################################################################################################################
-    # My code
+    logF = logpz + logpxz - logqzx    
 
     ########################################################################################################################
     ############################################################################################
@@ -133,10 +122,7 @@ def variational_lowerbound(x, encoder, decoder, num_samples, batch_size, \
 
     mean_CUBO = tf.reduce_mean(CUBO)  # mean over the batch size
     ########################################################################################################################
-
-    # END My code
-    ########################################################################################################################
-
+    
     if backward_pass == 'max': 
         logF = tf.reshape(logF, [num_samples, batch_size])           
         logF = tf.reduce_max(logF, 0)
@@ -147,13 +133,7 @@ def variational_lowerbound(x, encoder, decoder, num_samples, batch_size, \
         lowerbound = tf.reduce_mean(logF)
     elif np.abs(alpha - 1.0) < 10e-3:
         #lowerbound = tf.reduce_mean(logF)
-
-        ########################################################################################################################
-        #My code
         lowerbound = mean_qELBO_loss
-        # END My code
-        ########################################################################################################################
-
     else:
         logF = tf.reshape(logF, [num_samples, batch_size])
         logF = logF * (1 - alpha)   
@@ -185,10 +165,6 @@ def make_functions_vae(models, input_size, num_samples, batch_size, \
         #opt, cost0 = sess.run((optimizer, lowerbound), feed_dict={input: X,
         #                                                         q1_star: 1.0 - 1e-6,
         #                                                         learning_rate_ph: learning_rate})
-
-        ########################################################################################################################
-        #My code
-
         global q0_star
         #print("\n q0_star=",q0_star)
         cost, logF_np, mqelbol, mcubo = sess.run((lowerbound, logF, mean_qELBO_loss, mean_CUBO),
@@ -228,8 +204,6 @@ def make_functions_vae(models, input_size, num_samples, batch_size, \
         opt = sess.run((optimizer), feed_dict={input: X,
                                                q1_star1: 1.0 - q0_star,
                                                learning_rate_ph: learning_rate})
-        #END My code
-        ########################################################################################################################
 
         # #var_opt3 = minimize(root_qELBO_no_exp, var0, args=(logF_np, eq_term, num_samples), method='L-BFGS-B',
         # #                    options={'ftol': 1e-4, 'gtol': 1e-4, 'eps': 1e-6})
@@ -331,9 +305,6 @@ def init_optimizer(models, input_size, batch_size = 100, num_samples = 1, **kwar
 
         begin = time.time()
         for iteration in range(1, n_iter + 1):
-            ########################################################################################################################
-            # My code
-
             iteration_lowerbound = 0
             iteration_mcubo_q = 0
             iteration_mqelbol_q = 0
@@ -379,19 +350,14 @@ def init_optimizer(models, input_size, batch_size = 100, num_samples = 1, **kwar
                 #pdb.set_trace()
                 '''                                
                 begin = end
-
-                # END My code
-                ########################################################################################################################
-
+                
+        
     def eval_test_ll(sess, X, num_samples):
         #lowerbound_np, logF_np, mean_qELBO_loss_np, mean_CUBO_np = sess.run(variational_lowerbound(X, encoder, decoder, num_samples, X.shape[0], 0.0))
-
-        ########################################################################################################################
-        # My code
         global q0_star
         #print("q0_star=",q0_star)
         #pdb.set_trace()
-        '''
+        
         cost, logF_np, mqelbol, mcubo = sess.run(variational_lowerbound(X, encoder, decoder, num_samples, X.shape[0], 1.0),
                                                  feed_dict={q1_star1: 1.0-q0_star})
 
@@ -408,14 +374,11 @@ def init_optimizer(models, input_size, batch_size = 100, num_samples = 1, **kwar
         var_opt3 = minimize(root_qELBO, var0, args=(logF_np_reshaped, eq_term, num_samples), method='L-BFGS-B',
                             bounds=[(1.0 + 1.0 / eq_term, 1.1)], options={'ftol': 1e-9, 'gtol': 1e-9, 'eps': 1e-10})
         q0_star = var_opt3.x[0]
-        '''
+        
         lowerbound_np, logF_np, mean_qELBO_loss_np, mean_CUBO_np = sess.run(
             variational_lowerbound(X, encoder, decoder, num_samples, X.shape[0], 0.0),
             feed_dict={q1_star1: 1.0-q0_star})
         #lowerbound_np==log_px_IS, mean_qELBO_loss_np=mqelbo
-
-        #END My code
-        ########################################################################################################################
 
         return lowerbound_np, logF_np, mean_qELBO_loss_np, mean_CUBO_np
 
@@ -442,9 +405,6 @@ def init_optimizer(models, input_size, batch_size = 100, num_samples = 1, **kwar
             # indl = int(i*batch_size)
             # indr = int(min((i+1)*batch_size, num_data_test))
             # minibatch = X[indl:indr]
-
-            ########################################################################################################################
-            # My code
             batch_label = mnist.test.next_batch(batch_size)
             minibatch = batch_label[0]
 
@@ -470,8 +430,5 @@ def init_optimizer(models, input_size, batch_size = 100, num_samples = 1, **kwar
         print("\n Test set: mean_qELBO_loss=", mqelbo_total)
 
         return log_px_IS_total, time_test
-
-        # END My code
-        ########################################################################################################################
-
+     
     return fit, score                              
