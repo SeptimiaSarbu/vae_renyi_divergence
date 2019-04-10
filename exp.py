@@ -91,7 +91,7 @@ def main(dataset, dimZ, hidden_layers, n_iters, learning_rate = 0.0005, \
         #print("num_iter_trained=",num_iter_trained)
         print("Evaluating test data...")
         lowerbound_test, time_test = \
-            score(sess, data_test, num_samples = 5000)
+            score(sess, data_test, num_samples = num_samples)
         print("test data LL (lowerbound) = %.2f, time = %.2fs, iter %d" \
             % (lowerbound_test, time_test, num_iter_trained))
     
