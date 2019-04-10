@@ -8,19 +8,13 @@ from load_save import *
 from visualization.reconstruction import plot_recon
 from visualization.samples import plot_samples
 
-########################################################################################################################
-#My code
 from tensorflow.examples.tutorials.mnist import input_data
 
 import pdb
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 mnist = input_data.read_data_sets('MNIST')
-
-
-# END My code
-########################################################################################################################
 
 def main(dataset, dimZ, hidden_layers, n_iters, learning_rate = 0.0005, \
         batch_size = 100, seed = 0, alpha = 1.0, num_samples = 1, \
@@ -34,14 +28,8 @@ def main(dataset, dimZ, hidden_layers, n_iters, learning_rate = 0.0005, \
     #data_train, data_test = load_data(dataset, path, ratio, seed, supervised)
 
     #pdb.set_trace()
-
-    ########################################################################################################################
-    # My code
     data_train = mnist.train.images  # needs dimensions=[Nimages,784]
     data_test = mnist.test.images
-
-    # END My code
-    ########################################################################################################################
 
     if dataset == 'freyface':
         data_type = 'real'
@@ -98,12 +86,12 @@ def main(dataset, dimZ, hidden_layers, n_iters, learning_rate = 0.0005, \
     print("Training...")
     #pdb.set_trace()
     for n_iter in n_iters:
-        fit(sess, data_train, n_iter, learning_rate)
-        num_iter_trained += n_iter
-        print("num_iter_trained=",num_iter_trained)
+        #fit(sess, data_train, n_iter, learning_rate)
+        #num_iter_trained += n_iter
+        #print("num_iter_trained=",num_iter_trained)
         print("Evaluating test data...")
         lowerbound_test, time_test = \
-            score(sess, data_test, num_samples = 1)
+            score(sess, data_test, num_samples = 5000)
         print("test data LL (lowerbound) = %.2f, time = %.2fs, iter %d" \
             % (lowerbound_test, time_test, num_iter_trained))
     
@@ -132,7 +120,7 @@ if __name__ == '__main__':
     parser.add_argument('--alpha', '-a', type=float, default=1.0)
     parser.add_argument('--dimZ', '-Z', type=int, default=5)
     parser.add_argument('--dimH', '-H', type=int, default=200)
-    parser.add_argument('--iter', '-i', type=int, default=100)
+    parser.add_argument('--iter', '-i', type=int, default=1)
     parser.add_argument('--save_model', '-s', action='store_true', default=False)
     parser.add_argument('--seed', '-S', type=int, default=0)
     parser.add_argument('--backward_pass', '-b', type=str, default='full')
@@ -140,7 +128,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=100)
     parser.add_argument('--activation', type=str, default='softplus')
     parser.add_argument('--loss', type=str, default='vae')
-    parser.add_argument('--checkpoint', type=int, default=0)
+    parser.add_argument('--checkpoint', type=int, default=1)
     
     args = parser.parse_args()
     if args.dimH > 0:
